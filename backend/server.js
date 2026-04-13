@@ -19,6 +19,7 @@ app.use('/api/auth', require('./routes/auth'));
 const auth = require('./middleware/auth');
 app.use('/api/inventory', auth, require('./routes/inventory'));
 app.use('/api/haccp', auth, require('./routes/haccp'));
+app.get('/api/test', (req, res) => res.json({ message: 'API works' }));
 
 // Dashboard stats (protected)
 app.get('/api/dashboard/stats', auth, async (req, res) => {

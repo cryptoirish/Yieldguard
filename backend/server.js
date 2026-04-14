@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { initDatabase, getSupabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -8,19 +9,30 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Test route
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'API works' });
-});
+initDatabase().catch(console.error);
 
-// Auth routes (simple placeholder)
-app.post('/api/auth/signup', (req, res) => {
-  res.json({ message: 'Signup endpoint reached' });
-});
+// Auth routes
+app.use('/api/auth', require('./routes/auth'));
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});    const { data: violations } = await supabase
+// Protected routes
+const auth = require('./middleware/auth');
+app.use('/api/inventory', auth, require('./routes/inventory'));
+app.use('/api/haccp', auth, require('./routes/haccp'));
+
+// Dashboard stats (protected)
+app.get('/api/dashboard/stats', auth, async (req, res) => {
+  const supabase = getSupabase();
+  const restaurantId = req.user.restaurant_id;
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    const { data: lowStock } = await supabase
+      .from('inventory_items')
+      .select('id')
+      .eq('restaurant_id', restaurantId)
+      .lte('quantity', 0);
+    
+    const { data: violations } = await supabase
       .from('haccp_logs')
       .select('id')
       .eq('restaurant_id', restaurantId)

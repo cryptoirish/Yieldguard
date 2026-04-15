@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.get('/ping', (req, res) => res.send('pong'));
 
 initDatabase().catch(console.error);
 

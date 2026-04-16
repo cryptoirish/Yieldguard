@@ -8,8 +8,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.get('/ping', (req, res) => res.send('pong'));
 
+// Initialize database connection (no top-level await)
 initDatabase().catch(console.error);
 
 // Auth routes
@@ -24,29 +24,23 @@ app.use('/api/haccp', auth, require('./routes/haccp'));
 app.get('/api/dashboard/stats', auth, async (req, res) => {
   const supabase = getSupabase();
   const restaurantId = req.user.restaurant_id;
-  const today = new Date().toISOString().split('T')[0];
-
   try {
     const { data: lowStock } = await supabase
       .from('inventory_items')
       .select('id')
       .eq('restaurant_id', restaurantId)
       .lte('quantity', 0);
-    
     const { data: violations } = await supabase
       .from('haccp_logs')
       .select('id')
       .eq('restaurant_id', restaurantId)
       .eq('is_compliant', false)
       .gte('timestamp', new Date(Date.now() - 86400000).toISOString());
-    
     const { data: items } = await supabase
       .from('inventory_items')
       .select('quantity, cost_price')
       .eq('restaurant_id', restaurantId);
-    
     const inventoryValue = items?.reduce((sum, i) => sum + (i.quantity * i.cost_price), 0) || 0;
-
     res.json({
       today_reservations: 0,
       total_covers: 0,

@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { initDatabase, getSupabase } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -9,32 +8,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize database connection (no top-level await)
-initDatabase().catch(console.error);
+app.get('/api/test', (req, res) => res.json({ message: 'API works' }));
 
-// Auth routes
-app.use('/api/auth', require('./routes/auth'));
-
-// Protected routes
-const auth = require('./middleware/auth');
-app.use('/api/inventory', auth, require('./routes/inventory'));
-app.use('/api/haccp', auth, require('./routes/haccp'));
-
-// Dashboard stats (protected)
-app.get('/api/dashboard/stats', auth, async (req, res) => {
-  const supabase = getSupabase();
-  const restaurantId = req.user.restaurant_id;
-  try {
-    const { data: lowStock } = await supabase
-      .from('inventory_items')
-      .select('id')
-      .eq('restaurant_id', restaurantId)
-      .lte('quantity', 0);
-    const { data: violations } = await supabase
-      .from('haccp_logs')
-      .select('id')
-      .eq('restaurant_id', restaurantId)
-      .eq('is_compliant', false)
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));      .eq('is_compliant', false)
       .gte('timestamp', new Date(Date.now() - 86400000).toISOString());
     const { data: items } = await supabase
       .from('inventory_items')
